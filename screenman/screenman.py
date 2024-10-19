@@ -3,52 +3,16 @@
 import binascii
 import re
 import subprocess as sb
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import ClassVar, Optional
 
-# for some reason, some monitors don't include the serial number in the EDID
-# for those, define some fallback option to which the edid is matched.
-# This will not be a unique identifier, so it will not work if you have multiple monitors of the same model
-FALLBACK_UID = {"frametux": {"Manufacturer": "BOE", "Model": "3018"}}
+from screenman.config import Config
+from screenman.utils import ScreenSettings, exec_cmd, rot_to_str, str_to_rot
 
-# Define layouts
-# Mapping of the layout name to the EDID serials of the screens, to the settings
-LAYOUTS = {
-    "office": {
-        "internal": {
-            "enabled": True,
-            "primary": True,
-            "mode": (2256, 1504),
-            "position": (0, 0),
-            "rotation": "normal",
-        },
-        "office_external": {
-            "enabled": True,
-            "primary": False,
-            "mode": (3440, 1440),
-            "position": (2256, 0),
-            "rotation": "normal",
-        },
-    },
-    "single_frametux": {
-        "frametux": {
-            "enabled": True,
-            "primary": True,
-            "mode": (2256, 1504),
-            "position": (0, 0),
-            "rotation": "normal",
-        },
-    },
-    "single_baetylus": {
-        "DL51145435704": {
-            "enabled": True,
-            "primary": True,
-            "mode": (1920, 1080),
-            "position": (0, 0),
-            "rotation": "normal",
-        },
-    },
-}
+# Load the configuration
+toml_config = Config.load_from_toml()
+FALLBACK_UID = toml_config.fallback_uid
+LAYOUTS: dict[str, dict[str, ScreenSettings]] = toml_config.layouts
 
 
 @dataclass
@@ -67,25 +31,6 @@ class Mode:
 
     def cmd_str(self):
         return f"{self.width}x{self.height}"
-
-
-@dataclass
-class ScreenSettings:
-    resolution: tuple[int, int] = (0, 0)
-    is_primary: bool = False
-    is_enabled: bool = True
-    rotation: Optional[int] = None
-    position: Optional[tuple[str, str]] = None
-    is_connected: bool = True
-    change_table: dict[str, bool] = field(
-        default_factory=lambda: {
-            "resolution": False,
-            "is_primary": False,
-            "is_enabled": False,
-            "rotation": False,
-            "position": False,
-        }
-    )
 
 
 @dataclass
@@ -299,25 +244,6 @@ class Screen:
     __repr__ = __str__
 
 
-class RotateDirection:
-    Normal, Left, Inverted, Right = range(1, 5)
-    valtoname = {Normal: "normal", Left: "left", Inverted: "inverted", Right: "right"}
-    nametoval = {v: k for k, v in valtoname.items()}
-
-
-def rot_to_str(rot):
-    return RotateDirection.valtoname.get(rot, None)
-
-
-def str_to_rot(s):
-    return RotateDirection.nametoval.get(s, RotateDirection.Normal)
-
-
-def exec_cmd(cmd):
-    s = sb.check_output(cmd, stderr=sb.STDOUT)
-    return s.decode().split("\n")
-
-
 def create_screen(name_str, modes, edid):
     sc_name = name_str.split()[0]
     rot = str_to_rot(name_str.split()[3]) if len(name_str.split()) > 2 else None
@@ -406,19 +332,9 @@ def determine_layout(screens):
 def apply_layout(screens, layout_name):
     layout = LAYOUTS.get(layout_name, {})
     for screen in screens:
-        settings = layout.get(screen.uid)
+        settings: ScreenSettings | None = layout.get(screen.uid)
         if settings:
-            screen.is_enabled = settings.get("enabled", False)
-            screen.is_primary = settings.get("primary", False)
-            if "mode" in settings:
-                screen.resolution = settings["mode"]
-            if "position" in settings:
-                screen.position = (
-                    "--pos",
-                    f"{settings['position'][0]}x{settings['position'][1]}",
-                )
-            if "rotation" in settings:
-                screen.rotation = str_to_rot(settings["rotation"])
+            screen.__set = settings
         else:
             screen.is_enabled = False
         screen.apply_settings()

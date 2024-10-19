@@ -11,6 +11,7 @@ with open("README.md") as readme_file:
 requirements = [
     "Click>=7.0",
     "loguru>=0.7.2",
+    "platformdirs>=4.3.6",
 ]
 
 test_requirements = [
