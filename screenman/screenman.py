@@ -324,13 +324,47 @@ def create_screen(name_str, modes, edid):
     return Screen(sc_name, "primary" in name_str, rot, modes, edid)
 
 
-def parse_xrandr(lines):
-    rx_mode = re.compile(r"^\s+(\d+)x(\d+)\s+((?:\d+\.)?\d+)([* ]?)([+ ]?)")
+def parse_screen_connection(line):
+    """Parse a line to determine if it indicates a connected or disconnected screen."""
     rx_conn = re.compile(r"\bconnected\b")
     rx_disconn = re.compile(r"\bdisconnected\b")
+    if re.search(rx_conn, line):
+        return "connected"
+    elif re.search(rx_disconn, line):
+        return "disconnected"
+    return None
+
+
+def parse_edid_data(line, parsing_edid, edid):
+    """Extract EDID data from the line if currently parsing EDID information."""
     rx_edid_start = re.compile(r"\s+EDID:")
     rx_edid_data = re.compile(r"\s+([0-9a-fA-F]{32})")
 
+    if re.search(rx_edid_start, line):
+        return True, edid
+    if parsing_edid:
+        match = re.match(rx_edid_data, line)
+        if match:
+            edid += match.group(1)
+            return parsing_edid, edid
+        return False, edid
+    return parsing_edid, edid
+
+
+def parse_screen_modes(line, modes):
+    """Parse a line to extract mode information."""
+    rx_mode = re.compile(r"^\s+(\d+)x(\d+)\s+((?:\d+\.)?\d+)([* ]?)([+ ]?)")
+    match = re.search(rx_mode, line)
+    if match:
+        width, height = int(match.group(1)), int(match.group(2))
+        freq = float(match.group(3))
+        current = match.group(4).strip() == "*"
+        preferred = match.group(5).strip() == "+"
+        modes.append(Mode(width, height, freq, current, preferred))
+    return modes
+
+
+def parse_xrandr(lines):
     sc_name_line = None
     edid = ""
     parsing_edid = False
@@ -338,7 +372,8 @@ def parse_xrandr(lines):
     modes = []
 
     for line in lines:
-        if re.search(rx_conn, line) or re.search(rx_disconn, line):
+        connection_status = parse_screen_connection(line)
+        if connection_status:
             if sc_name_line:
                 newscreen = create_screen(sc_name_line, modes, edid)
                 screens.append(newscreen)
@@ -346,22 +381,9 @@ def parse_xrandr(lines):
                 edid = ""
                 parsing_edid = False
             sc_name_line = line
-        elif re.search(rx_edid_start, line):
-            parsing_edid = True
-        elif parsing_edid:
-            match = re.match(rx_edid_data, line)
-            if match:
-                edid += match.group(1)
-            else:
-                parsing_edid = False
         else:
-            match = re.search(rx_mode, line)
-            if match:
-                width, height = int(match.group(1)), int(match.group(2))
-                freq = float(match.group(3))
-                current = match.group(4).strip() == "*"
-                preferred = match.group(5).strip() == "+"
-                modes.append(Mode(width, height, freq, current, preferred))
+            parsing_edid, edid = parse_edid_data(line, parsing_edid, edid)
+            modes = parse_screen_modes(line, modes)
 
     if sc_name_line:
         newscreen = create_screen(sc_name_line, modes, edid)
