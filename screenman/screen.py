@@ -73,7 +73,7 @@ class Edid:
         # Extract useful information from the edid-decode output
         for line in edid_output.splitlines():
             if serial_match := edid.SERIAL_REGEX.search(line):
-                edid.serial = serial_match.group(1).strip()
+                edid.serial = serial_match.group(1).strip().replace("'", "")
             if name_match := edid.NAME_REGEX.search(line):
                 edid.name = name_match.group(1).strip()
             if manufacturer_match := edid.MANUFACTURER_REGEX.search(line):
@@ -156,7 +156,7 @@ class Screen:
     @resolution.setter
     def resolution(self, newres):
         if not self.is_enabled and not self.__set.change_table["is_enabled"]:
-            raise ValueError("The Screen is off")
+            return
         if newres != self.__set.resolution:
             self.check_resolution(newres)
             self.__set.resolution = newres
@@ -334,7 +334,10 @@ def apply_layout(screens, layout_name):
     for screen in screens:
         settings: ScreenSettings | None = layout.get(screen.uid)
         if settings:
-            screen.__set = settings
+            for key, value in settings.__dict__.items():
+                if key not in ["change_table", "is_connected"]:
+                    setattr(screen, key, value)
+            # screen.__set = settings
         else:
             screen.is_enabled = False
         screen.apply_settings()
