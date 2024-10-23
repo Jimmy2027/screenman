@@ -6,6 +6,8 @@ import subprocess as sb
 from dataclasses import dataclass
 from typing import ClassVar, Optional
 
+from loguru import logger
+
 from screenman.config import Config
 from screenman.utils import ScreenSettings, exec_cmd, rot_to_str, str_to_rot
 
@@ -232,6 +234,7 @@ class Screen:
     def apply_settings(self):
         cmd = self.build_cmd()
         if cmd:
+            logger.debug(f"Applying settings for screen {self.name}: {cmd}")
             exec_cmd(cmd)
             self.__set.change_table = {key: False for key in self.__set.change_table}
 
@@ -336,8 +339,8 @@ def apply_layout(screens, layout_name):
         if settings:
             for key, value in settings.__dict__.items():
                 if key not in ["change_table", "is_connected"]:
+                    logger.debug(f"Setting {key} to {value} for screen {screen.uid}")
                     setattr(screen, key, value)
-            # screen.__set = settings
         else:
             screen.is_enabled = False
         screen.apply_settings()
