@@ -6,7 +6,6 @@ import pytest
 
 from click.testing import CliRunner
 
-from screenman import screenman
 from screenman import cli
 
 
