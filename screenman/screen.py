@@ -327,7 +327,9 @@ def connected_screens():
 
 def determine_layout(screens):
     for layout_name, layout in LAYOUTS.items():
-        if all(screen.uid in layout for screen in screens):
+        if all(
+            screen_uid in {screen.uid for screen in screens} for screen_uid in layout
+        ):
             return layout_name
     return None
 
