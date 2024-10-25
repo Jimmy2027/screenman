@@ -240,8 +240,8 @@ class Screen:
 
     def __str__(self):
         return (
-            f"<{self.name}, UID: {self.uid}, primary: {self.is_primary}, modes: {len(self.supported_modes)},"
-            f"conn: {self.is_connected}, rot: {rot_to_str(self.rotation)}, enabled: {self.is_enabled}>"
+            f"<{self.name}, UID: {self.uid}, primary: {self.is_primary}, modes: {len(self.supported_modes)}, "
+            f"conn: {self.is_connected}, rot: {rot_to_str(self.rotation)}, enabled: {self.is_enabled}, res: {self.resolution}>"
         )
 
     __repr__ = __str__
@@ -337,6 +337,11 @@ def determine_layout(screens):
 
 
 def apply_layout(screens, layout_name):
+    # run xrandr --auto to disable all disconnected screens
+    xrandr_auto = exec_cmd(["xrandr", "--auto", "-v"])
+    logger.debug(f"Output of xrandr --auto: {xrandr_auto}")
+
+    # apply all settings from the layout config
     layout = LAYOUTS.get(layout_name, {})
     for screen in screens:
         settings: ScreenSettings | None = layout.get(screen.uid)
