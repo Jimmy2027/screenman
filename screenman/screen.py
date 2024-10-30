@@ -341,6 +341,8 @@ def apply_layout(screens, layout_name):
     xrandr_auto = exec_cmd(["xrandr", "--auto", "-v"])
     logger.debug(f"Output of xrandr --auto: {xrandr_auto}")
 
+    xrandr_cmd = ["xrandr"]
+
     # apply all settings from the layout config
     layout = LAYOUTS.get(layout_name, {})
     for screen in screens:
@@ -352,9 +354,16 @@ def apply_layout(screens, layout_name):
                     setattr(screen, key, value)
         else:
             screen.is_enabled = False
-        screen.apply_settings()
+        # skip the first element, as it is the xrandr command
+        xrandr_cmd.append(screen.build_cmd()[1:])
+    
+    logger.debug(f"Applying settings: {xrandr_cmd}")
+    exec_cmd(xrandr_cmd)
 
 
+###
+# Run the script standalone, useful for debugging
+###
 if __name__ == "__main__":
     screens = connected_screens()
     for s in screens:
