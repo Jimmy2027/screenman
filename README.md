@@ -42,3 +42,16 @@ rotation = "normal"
 ```
 
 A more advanced screenman.toml configuration file can be found in the [examples](examples) directory.
+
+## Installation
+
+### portage
+
+`screenman` is available via [Jimmy's overlay](https://github.com/Jimmy2027/overlay/blob/main/dev-python/screenman/screenman-9999.ebuild).
+Either enable the repo or copy the ebuild to your local overlay.
+
+Then run:
+
+```bash
+emerge -av screenman
+```
