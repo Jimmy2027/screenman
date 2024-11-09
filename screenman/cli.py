@@ -22,8 +22,13 @@ def configure_logger(log_level="INFO", log_file=None):
     default="INFO",
     help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
-@click.option("--log-file", default=None, help="Set the log file path")
-@click.option("--print-info", is_flag=True, help="Print the connected screens and exit")
+@click.option("--log-file", default=None, help="Set the log file path.")
+@click.option(
+    "--print-info",
+    is_flag=True,
+    help="Print the connected screens and the corresponding layout."
+    "If no layout is defined, the default layout 'auto' is used.",
+)
 def main(log_level, log_file, print_info):
     """Console script for screenman."""
     configure_logger(log_level, log_file)

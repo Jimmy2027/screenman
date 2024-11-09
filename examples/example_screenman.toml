@@ -1,0 +1,48 @@
+[fallback_uid]
+frametux = { Manufacturer = "BOE", Model = "3018" }
+
+[layouts.office.008NTLE9T528]
+# horizontal screen
+primary = true
+mode = [2560, 1440]
+position = [0, 0]
+rotation = "left"
+
+[layouts.office.H4ZRA04684]
+# vertical screen
+primary = false
+mode = [3440, 1440]
+position = [1440, 0]
+rotation = "normal"
+
+[layouts.office.frametux]
+enabled = false
+primary = false
+mode = [2256, 1504]
+position = [0, 0]
+rotation = "normal"
+
+[layouts.single_frametux.frametux]
+primary = true
+mode = [2256, 1504]
+position = [0, 0]
+rotation = "normal"
+
+[layouts.single_baetylus.DL51145435704]
+primary = true
+mode = [1920, 1080]
+position = [0, 0]
+rotation = "normal"
+
+[layouts.home.frametux]
+enabled = true
+primary = true
+mode = [2256, 1504]
+position = [0, 0]
+rotation = "normal"
+
+[layouts.home.DL51145435704]
+primary = false
+mode = [1920, 1080]
+position = [2256, 0]
+rotation = "normal"
