@@ -26,7 +26,7 @@ class Config:
             Path.cwd(),
             Path.home(),
             Path(user_config_dir(roaming=True)),
-            Path(user_config_dir("synthara_sdk", roaming=False)),
+            Path(user_config_dir("screenman", roaming=False)),
             Path(site_config_dir()),
         ]
         for path in config_paths:

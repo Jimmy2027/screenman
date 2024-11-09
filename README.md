@@ -52,6 +52,14 @@ If you can't install `screenman` with your package manager, you can also run it 
 uv tool run screenman --help
 ```
 
+### Configuration
+The configuration file can be stored in one of the following paths:
+- Current working directory
+- Home directory
+- User configuration directory (roaming)
+- User configuration directory for "screenman" (non-roaming)
+- Site configuration directory
+
 ## Installation
 
 ### Dependencies
