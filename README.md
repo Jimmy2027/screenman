@@ -2,7 +2,7 @@
 
 A Python tool to manage and configure multi-monitor setups using EDID information, allowing users to apply predefined screen layouts with ease.
 
-## Usage
+## Setup
 
 ```terminal
 $ screenman --help
@@ -43,7 +43,28 @@ rotation = "normal"
 
 A more advanced screenman.toml configuration file can be found in the [examples](examples) directory.
 
+## Usage
+I have `screenman --log-file ~/.local/logs/screenman.log --log-level DEBUG` mapped to a keybinding.
+
+If you can't install `screenman` with your package manager, you can also run it with `uv`:
+    
+```bash
+uv tool run screenman
+```
+
 ## Installation
+
+### pip release version
+
+```bash
+pip install screenman
+```
+
+### pip live version
+
+```bash
+pip install git+https://github.com/Jimmy2027/screenman.git
+```
 
 ### portage
 
