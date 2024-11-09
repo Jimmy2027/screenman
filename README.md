@@ -49,7 +49,7 @@ I have `screenman --log-file ~/.local/logs/screenman.log --log-level DEBUG` mapp
 If you can't install `screenman` with your package manager, you can also run it with `uv`:
     
 ```bash
-uv tool run screenman
+uv tool run screenman --help
 ```
 
 ## Installation
