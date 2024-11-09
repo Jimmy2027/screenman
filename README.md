@@ -54,6 +54,9 @@ uv tool run screenman --help
 
 ## Installation
 
+### Dependencies
+Install [edid-decode](https://git.linuxtv.org/edid-decode.git/).
+
 ### pip release version
 
 ```bash
