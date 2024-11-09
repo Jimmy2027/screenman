@@ -333,13 +333,16 @@ def determine_layout(screens):
             screen_uid in {screen.uid for screen in screens} for screen_uid in layout
         ):
             return layout_name
-    return None
+    return "auto"
 
 
 def apply_layout(screens, layout_name):
     # run xrandr --auto to disable all disconnected screens
     xrandr_auto = exec_cmd(["xrandr", "--auto", "-v"])
     logger.debug(f"Output of xrandr --auto: {xrandr_auto}")
+
+    if layout_name == "auto":
+        return
 
     xrandr_cmd = ["xrandr"]
 
@@ -356,7 +359,7 @@ def apply_layout(screens, layout_name):
             screen.is_enabled = False
         # skip the first element, as it is the xrandr command
         xrandr_cmd.append(screen.build_cmd()[1:])
-    
+
     logger.debug(f"Applying settings: {xrandr_cmd}")
     exec_cmd(xrandr_cmd)
 
