@@ -5,13 +5,10 @@ from dataclasses import dataclass
 
 from loguru import logger
 
-from screenman.config import Config
+from screenman import toml_config
 from screenman.edid import Edid
 from screenman.utils import ScreenSettings, exec_cmd, rot_to_str, str_to_rot
 
-# Load the configuration
-toml_config = Config.load_from_toml()
-FALLBACK_UID = toml_config.fallback_uid
 LAYOUTS: dict[str, dict[str, ScreenSettings]] = toml_config.layouts
 
 

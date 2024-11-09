@@ -1,14 +1,14 @@
-from screenman.screen import FALLBACK_UID
-
-
-from loguru import logger
-
-
 import binascii
 import re
 import subprocess as sb
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Optional
+
+from loguru import logger
+
+from screenman import toml_config
+
+FALLBACK_UID = toml_config.fallback_uid
 
 
 @dataclass
