@@ -37,6 +37,31 @@ class Mode:
 
 @dataclass
 class Edid:
+    """
+    Represents the Extended Display Identification Data (EDID) of a monitor.
+    Needs the edid-decode utility to be installed:
+    https://git.linuxtv.org/edid-decode.git/
+
+    Attributes:
+        serial (Optional[str]): The serial number of the monitor.
+        name (Optional[str]): The name of the monitor.
+        manufacturer (Optional[str]): The manufacturer of the monitor.
+        model_number (Optional[str]): The model number of the monitor.
+        fallback_uid (Optional[str]): A fallback unique identifier for the monitor.
+
+    Class Attributes:
+        SERIAL_REGEX (ClassVar[re.Pattern]): Regex pattern to extract the serial number from EDID data.
+        NAME_REGEX (ClassVar[re.Pattern]): Regex pattern to extract the name from EDID data.
+        MANUFACTURER_REGEX (ClassVar[re.Pattern]): Regex pattern to extract the manufacturer from EDID data.
+        MODEL_NUMBER_REGEX (ClassVar[re.Pattern]): Regex pattern to extract the model number from EDID data.
+
+    Methods:
+        from_edid_hex(cls, edid_hex: str) -> "Edid":
+            Parses EDID data from a hexadecimal string and returns an Edid instance.
+        get_fallback_uid() -> Optional[str]:
+            Returns a fallback unique identifier based on the manufacturer and model number.
+    """
+
     serial: Optional[str] = None
     name: Optional[str] = None
     manufacturer: Optional[str] = None
@@ -65,10 +90,10 @@ class Edid:
             )
             edid_output = proc.stdout
         except FileNotFoundError:
-            print("Error: edid-decode utility is not installed.")
+            logger.error("edid-decode utility is not installed.")
             return Edid()
         except sb.CalledProcessError as e:
-            print(f"Error: Failed to run edid-decode: {e}")
+            logger.error(f"Failed to run edid-decode: {e}")
             return Edid()
 
         edid = Edid()
@@ -98,6 +123,31 @@ class Edid:
 
 
 class Screen:
+    """
+    Represents a screen with various settings and capabilities.
+    Taken and modified from pyrandr:
+    https://github.com/cakturk/pyrandr/tree/master
+
+    Attributes:
+        name (str): The name of the screen.
+        uid (str): The unique identifier for the screen, derived from EDID.
+        curr_mode (Mode): The current mode of the screen.
+        supported_modes (list): List of supported modes for the screen.
+        __set (ScreenSettings): The settings for the screen.
+
+    Methods:
+        name: Returns the name of the screen.
+        is_connected: Returns whether the screen is connected.
+        is_enabled: Gets or sets whether the screen is enabled.
+        is_primary: Gets or sets whether the screen is the primary screen.
+        resolution: Gets or sets the resolution of the screen.
+        rotation: Gets or sets the rotation of the screen.
+        position: Gets or sets the position of the screen.
+        available_resolutions: Returns a list of available resolutions.
+        check_resolution: Checks if a given resolution is supported.
+        build_cmd: Builds the command to apply the screen settings.
+    """
+
     def __init__(self, name, primary, rot, modes, edid_hex):
         self.__name = name
         self.__set = ScreenSettings()
@@ -230,13 +280,6 @@ class Screen:
         if self.__set.change_table["position"]:
             rel, pos = self.__set.position
             cmd.extend([rel, pos])
-
-    def apply_settings(self):
-        cmd = self.build_cmd()
-        if cmd:
-            logger.debug(f"Applying settings for screen {self.name}: {cmd}")
-            exec_cmd(cmd)
-            self.__set.change_table = {key: False for key in self.__set.change_table}
 
     def __str__(self):
         return (
