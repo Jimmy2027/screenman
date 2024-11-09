@@ -202,13 +202,32 @@ class Screen:
 
 
 def create_screen(name_str, modes, edid):
+    """
+    Create a Screen object from the given parameters.
+
+    Args:
+        name_str (str): The name string containing screen information.
+        modes (list): A list of supported modes for the screen.
+        edid (str): The EDID data for the screen.
+
+    Returns:
+        Screen: A Screen object initialized with the given parameters.
+    """
     sc_name = name_str.split()[0]
     rot = str_to_rot(name_str.split()[3]) if len(name_str.split()) > 2 else None
     return Screen(sc_name, "primary" in name_str, rot, modes, edid)
 
 
 def parse_screen_connection(line):
-    """Parse a line to determine if it indicates a connected or disconnected screen."""
+    """
+    Parse a line to determine if it indicates a connected or disconnected screen.
+
+    Args:
+        line (str): The line to parse.
+
+    Returns:
+        str: "connected" if the screen is connected, "disconnected" if the screen is disconnected, None otherwise.
+    """
     rx_conn = re.compile(r"\bconnected\b")
     rx_disconn = re.compile(r"\bdisconnected\b")
     if re.search(rx_conn, line):
@@ -219,7 +238,17 @@ def parse_screen_connection(line):
 
 
 def parse_edid_data(line, parsing_edid, edid):
-    """Extract EDID data from the line if currently parsing EDID information."""
+    """
+    Extract EDID data from the line if currently parsing EDID information.
+
+    Args:
+        line (str): The line to parse.
+        parsing_edid (bool): Whether EDID parsing is currently active.
+        edid (str): The accumulated EDID data.
+
+    Returns:
+        tuple: A tuple containing a boolean indicating if EDID parsing is active and the accumulated EDID data.
+    """
     rx_edid_start = re.compile(r"\s+EDID:")
     rx_edid_data = re.compile(r"\s+([0-9a-fA-F]{32})")
 
@@ -235,7 +264,16 @@ def parse_edid_data(line, parsing_edid, edid):
 
 
 def parse_screen_modes(line, modes):
-    """Parse a line to extract mode information."""
+    """
+    Parse a line to extract mode information.
+
+    Args:
+        line (str): The line to parse.
+        modes (list): The list of modes to append the parsed mode to.
+
+    Returns:
+        list: The updated list of modes.
+    """
     rx_mode = re.compile(r"^\s+(\d+)x(\d+)\s+((?:\d+\.)?\d+)([* ]?)([+ ]?)")
     match = re.search(rx_mode, line)
     if match:
@@ -248,6 +286,15 @@ def parse_screen_modes(line, modes):
 
 
 def parse_xrandr(lines):
+    """
+    Parse the output of the xrandr command to extract screen information.
+
+    Args:
+        lines (list): The lines of output from the xrandr command.
+
+    Returns:
+        list: A list of Screen objects representing the connected screens.
+    """
     sc_name_line = None
     edid = ""
     parsing_edid = False
@@ -276,11 +323,25 @@ def parse_xrandr(lines):
 
 
 def connected_screens():
+    """
+    Get a list of connected screens.
+
+    Returns:
+        list: A list of connected Screen objects.
+    """
     return [s for s in parse_xrandr(exec_cmd(["xrandr", "--props"])) if s.is_connected]
 
 
 def determine_layout(screens):
-    # sort the layouts my number of screens
+    """
+    Determine the layout name based on the connected screens.
+
+    Args:
+        screens (list): A list of connected Screen objects.
+
+    Returns:
+        str: The name of the determined layout, or "auto" if no matching layout is found.
+    """
     layouts = sorted(LAYOUTS.items(), key=lambda x: len(x[1]), reverse=True)
     for layout_name, layout in layouts:
         if all(
@@ -291,7 +352,16 @@ def determine_layout(screens):
 
 
 def apply_layout(screens, layout_name):
-    # run xrandr --auto to disable all disconnected screens
+    """
+    Apply the specified layout to the connected screens.
+
+    Args:
+        screens (list): A list of connected Screen objects.
+        layout_name (str): The name of the layout to apply.
+
+    Returns:
+        None
+    """
     xrandr_auto = exec_cmd(["xrandr", "--auto", "-v"])
     logger.debug(f"Output of xrandr --auto: {xrandr_auto}")
 
@@ -300,7 +370,6 @@ def apply_layout(screens, layout_name):
 
     xrandr_cmd = ["xrandr"]
 
-    # apply all settings from the layout config
     layout = LAYOUTS.get(layout_name, {})
     for screen in screens:
         settings: ScreenSettings | None = layout.get(screen.uid)
@@ -311,7 +380,6 @@ def apply_layout(screens, layout_name):
                     setattr(screen, key, value)
         else:
             screen.is_enabled = False
-        # skip the first element, as it is the xrandr command
         xrandr_cmd.append(screen.build_cmd()[1:])
 
     logger.debug(f"Applying settings: {xrandr_cmd}")
