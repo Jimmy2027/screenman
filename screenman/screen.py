@@ -369,6 +369,7 @@ def apply_layout(screens, layout_name):
 
     layout = LAYOUTS.get(layout_name, {})
     for screen in screens:
+        screen: Screen
         settings: ScreenSettings | None = layout.get(screen.uid)
         if settings:
             for key, value in settings.__dict__.items():
@@ -377,7 +378,11 @@ def apply_layout(screens, layout_name):
                     setattr(screen, key, value)
         else:
             screen.is_enabled = False
-        xrandr_cmd.append(screen.build_cmd()[1:])
+        cmd = screen.build_cmd()
+        if cmd:
+            xrandr_cmd.extend(screen.build_cmd()[1:])
+        else:
+            logger.debug(f"No changes for screen {screen.uid}, skipping.")
 
     logger.debug(f"Applying settings: {xrandr_cmd}")
     exec_cmd(xrandr_cmd)
