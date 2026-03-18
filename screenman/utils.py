@@ -22,6 +22,27 @@ def exec_cmd(cmd):
     return s.decode().split("\n")
 
 
+def rescan_pci():
+    """
+    Rescan PCI bus to detect dock/display hardware.
+
+    Returns:
+        bool: True if rescan succeeded, False otherwise.
+    """
+    try:
+        sb.run(
+            ["sudo", "tee", "/sys/bus/pci/rescan"],
+            input=b"1",
+            check=True,
+            stdout=sb.DEVNULL,
+            stderr=sb.DEVNULL,
+            timeout=5,
+        )
+        return True
+    except (sb.CalledProcessError, PermissionError, FileNotFoundError, sb.TimeoutExpired):
+        return False
+
+
 @dataclass
 class ScreenSettings:
     resolution: tuple[int, int] = (0, 0)
@@ -30,6 +51,8 @@ class ScreenSettings:
     rotation: Optional[int] = None
     position: Optional[tuple[str, str]] = None
     is_connected: bool = True
+    scale: Optional[tuple[float, float]] = None
+    same_as: Optional[str] = None
     change_table: dict[str, bool] = field(
         default_factory=lambda: {
             "resolution": False,
@@ -37,5 +60,7 @@ class ScreenSettings:
             "is_enabled": False,
             "rotation": False,
             "position": False,
+            "scale": False,
+            "same_as": False,
         }
     )

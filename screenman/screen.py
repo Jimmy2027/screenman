@@ -7,7 +7,7 @@ from loguru import logger
 
 from screenman import toml_config
 from screenman.edid import Edid
-from screenman.utils import ScreenSettings, exec_cmd, rot_to_str, str_to_rot
+from screenman.utils import ScreenSettings, exec_cmd, rescan_pci, rot_to_str, str_to_rot
 
 LAYOUTS: dict[str, dict[str, ScreenSettings]] = toml_config.layouts
 
@@ -142,6 +142,26 @@ class Screen:
             self.__set.position = args
             self.__set.change_table["position"] = True
 
+    @property
+    def scale(self):
+        return self.__set.scale
+
+    @scale.setter
+    def scale(self, value):
+        if value != self.__set.scale:
+            self.__set.scale = value
+            self.__set.change_table["scale"] = True
+
+    @property
+    def same_as(self):
+        return self.__set.same_as
+
+    @same_as.setter
+    def same_as(self, value):
+        if value != self.__set.same_as:
+            self.__set.same_as = value
+            self.__set.change_table["same_as"] = True
+
     def available_resolutions(self):
         return [(r.width, r.height) for r in self.supported_modes]
 
@@ -161,6 +181,8 @@ class Screen:
                 self._add_primary(cmd)
                 self._add_rotation(cmd)
                 self._add_position(cmd)
+                self._add_scale(cmd)
+                self._add_same_as(cmd)
             else:
                 cmd.append("--off")
 
@@ -174,7 +196,7 @@ class Screen:
             )
 
     def _add_primary(self, cmd):
-        if self.__set.change_table["is_primary"]:
+        if self.__set.change_table["is_primary"] and self.__set.is_primary:
             cmd.append("--primary")
 
     def _add_rotation(self, cmd):
@@ -188,6 +210,18 @@ class Screen:
         if self.__set.change_table["position"]:
             rel, pos = self.__set.position
             cmd.extend([rel, pos])
+
+    def _add_scale(self, cmd):
+        if self.__set.change_table["scale"]:
+            if self.__set.scale:
+                sx, sy = self.__set.scale
+            else:
+                sx, sy = 1, 1
+            cmd.extend(["--scale", f"{sx}x{sy}"])
+
+    def _add_same_as(self, cmd):
+        if self.__set.change_table["same_as"] and self.__set.same_as:
+            cmd.extend(["--same-as", self.__set.same_as])
 
     def __str__(self):
         return (
@@ -348,19 +382,31 @@ def determine_layout(screens):
     return "auto"
 
 
-def apply_layout(screens, layout_name):
+def apply_layout(screens, layout_name, do_rescan_pci=False):
     """
     Apply the specified layout to the connected screens.
 
     Args:
         screens (list): A list of connected Screen objects.
         layout_name (str): The name of the layout to apply.
+        do_rescan_pci (bool): If True, rescan PCI bus before applying layout.
 
     Returns:
         None
     """
-    xrandr_auto = exec_cmd(["xrandr", "--auto", "-v"])
-    logger.debug(f"Output of xrandr --auto: {xrandr_auto}")
+    # Optionally rescan PCI bus to ensure dock/displays are detected
+    if do_rescan_pci:
+        if rescan_pci():
+            logger.debug("PCI bus rescanned successfully")
+        else:
+            logger.debug("PCI rescan failed or not available")
+
+    # Reset all outputs to auto with scale 1x1 to clear any mirror/scale state
+    reset_cmd = ["xrandr"]
+    for screen in screens:
+        reset_cmd.extend(["--output", screen.name, "--auto", "--scale", "1x1"])
+    xrandr_auto = exec_cmd(reset_cmd)
+    logger.debug(f"Output of xrandr auto-reset: {xrandr_auto}")
 
     if layout_name == "auto":
         return
@@ -385,6 +431,82 @@ def apply_layout(screens, layout_name):
             logger.debug(f"No changes for screen {screen.uid}, skipping.")
 
     logger.debug(f"Applying settings: {xrandr_cmd}")
+    exec_cmd(xrandr_cmd)
+
+
+def find_internal_external(screens):
+    """Classify screens into internal (eDP) and external.
+
+    Returns:
+        tuple: (internal Screen or None, list of external Screens)
+    """
+    internal = None
+    externals = []
+    for s in screens:
+        if s.name.startswith("eDP"):
+            internal = s
+        else:
+            externals.append(s)
+    return internal, externals
+
+
+def apply_mirror(screens):
+    """Set up display mirroring between internal (eDP) and external screen.
+
+    Scales the internal display's framebuffer to match the external's preferred
+    resolution using xrandr --same-as and --scale.
+    """
+    internal, externals = find_internal_external(screens)
+    if not internal:
+        raise RuntimeError("No internal (eDP) display found for mirroring")
+    if not externals:
+        raise RuntimeError("No external display found for mirroring")
+
+    external = externals[0]
+    if len(externals) > 1:
+        logger.warning(
+            f"Multiple external displays found, using {external.name}. "
+            f"Disabling: {[s.name for s in externals[1:]]}"
+        )
+        for s in externals[1:]:
+            s.is_enabled = False
+
+    ext_preferred = next((m for m in external.supported_modes if m.preferred), None)
+    int_preferred = next((m for m in internal.supported_modes if m.preferred), None)
+    if not ext_preferred:
+        raise RuntimeError(f"No preferred mode found for external display {external.name}")
+    if not int_preferred:
+        raise RuntimeError(f"No preferred mode found for internal display {internal.name}")
+
+    scale_x = ext_preferred.width / int_preferred.width
+    scale_y = ext_preferred.height / int_preferred.height
+    logger.info(
+        f"Mirroring: {internal.name} ({int_preferred.cmd_str()}) → "
+        f"{external.name} ({ext_preferred.cmd_str()}), scale {scale_x:.4f}x{scale_y:.4f}"
+    )
+
+    # Configure external: enable, preferred resolution, position 0x0, primary
+    external.is_enabled = True
+    external.resolution = ext_preferred.resolution()
+    external.position = ("--pos", "0x0")
+    external.is_primary = True
+
+    # Configure internal: enable, native resolution, scale to match external, same-as external
+    internal.is_enabled = True
+    internal.resolution = int_preferred.resolution()
+    internal.scale = (scale_x, scale_y)
+    internal.same_as = external.name
+
+    # Build combined xrandr command
+    xrandr_cmd = ["xrandr"]
+    for s in screens:
+        cmd = s.build_cmd()
+        if cmd:
+            xrandr_cmd.extend(cmd[1:])
+        else:
+            logger.debug(f"No changes for screen {s.name}, skipping.")
+
+    logger.debug(f"Mirror command: {xrandr_cmd}")
     exec_cmd(xrandr_cmd)
 
 
