@@ -34,3 +34,8 @@ screenman = "screenman.cli:main"
 
 [project.optional-dependencies]
 test = ["pytest>=3"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+]
