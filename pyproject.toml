@@ -7,7 +7,7 @@ requires = [
 
 [project]
 name = "screenman"
-version = "0.1.2"
+dynamic = ["version"]
 description = "A Python tool to manage and configure multi-monitor setups using EDID information, allowing users to apply predefined screen layouts with ease."
 readme = "README.md"
 license = { text = "MIT license" }
@@ -39,3 +39,5 @@ test = ["pytest>=3"]
 dev = [
     "pyright>=1.1.408",
 ]
+
+[tool.setuptools_scm]

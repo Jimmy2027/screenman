@@ -2,7 +2,9 @@
 
 __author__ = """Hendrik Klug"""
 __email__ = "hendrik.klug@gmail.com"
-__version__ = "0.1.0"
+from importlib.metadata import version as _version
+
+__version__ = _version("screenman")
 
 from screenman.config import Config
 
