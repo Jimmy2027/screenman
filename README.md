@@ -17,6 +17,10 @@ Options:
   --print-info      Print the connected screens and the corresponding
                     layout.If no layout is defined, the default layout 'auto'
                     is used.
+  --rescan-pci      Rescan PCI bus before applying layout. Useful for
+                    dock/display detection issues after resume.
+  --mirror          Mirror the internal (eDP) display to the external display.
+  --mirror-off      Revert mirroring and apply the normal layout.
   --help            Show this message and exit.
 
 ```
@@ -42,6 +46,18 @@ rotation = "normal"
 ```
 
 A more advanced screenman.toml configuration file can be found in the [examples](examples) directory.
+
+### Mirroring
+
+For presentations or other scenarios where you want to mirror your internal (eDP) display to an external screen:
+
+```bash
+# Start mirroring — scales the internal display to match the external resolution
+screenman --mirror
+
+# Revert to your normal layout
+screenman --mirror-off
+```
 
 ## Usage
 I have `screenman --log-file ~/.local/logs/screenman.log --log-level DEBUG` mapped to a keybinding.
