@@ -1,6 +1,7 @@
 """Console script for screenman."""
 
 import sys
+from importlib.metadata import version
 
 import click
 from loguru import logger
@@ -17,6 +18,7 @@ def configure_logger(log_level="INFO", log_file=None):
 
 
 @click.command()
+@click.version_option(version=version("screenman"), prog_name="screenman")
 @click.option(
     "--log-level",
     default="INFO",
